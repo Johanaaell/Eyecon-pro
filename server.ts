@@ -88,7 +88,9 @@ function validateLicense(licenseKey: string | undefined, clientId?: string): { v
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  
+  // Hugging Face ka load balancer 7860 port expect karta hai
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 7860;
 
   // Allow cross-origin requests for detached frontend/backend hosting
   app.use(cors());
@@ -214,7 +216,7 @@ async function startServer() {
 
     const index = db.keys.findIndex((k: any) => k.key === key);
     if (index === -1) {
-      return status(404).json({ success: false, message: "License key not found" });
+      return res.status(404).json({ success: false, message: "License key not found" });
     }
 
     if (action === "block") {
@@ -438,8 +440,9 @@ async function startServer() {
     });
   }
 
+  // Binding on dynamic or Hugging face port 7860
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
