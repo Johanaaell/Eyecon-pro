@@ -1,0 +1,6 @@
+{
+  "name": "Eyecon Pro Dashboard",
+  "description": "An elegant professional dashboard for batch phone number lookups using the Eyecon API, featuring real-time stream processing, live progress tracking, and Excel exporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
