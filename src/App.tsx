@@ -41,6 +41,8 @@ interface RecordItem {
   Timestamp: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export default function App() {
   const [numbersText, setNumbersText] = useState<string>(
     `923040710048\n923001122334\n923334445556\n12125550199\n442079460192`
@@ -98,7 +100,7 @@ export default function App() {
         return;
       }
       try {
-        const response = await fetch('/api/verify-license', {
+        const response = await fetch(API_BASE + '/api/verify-license', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ licenseKey, clientId }),
@@ -198,7 +200,7 @@ export default function App() {
     setLicenseError('');
     setIsValidatingLicense(true);
     try {
-      const response = await fetch('/api/verify-license', {
+      const response = await fetch(API_BASE + '/api/verify-license', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ licenseKey: keyInput.trim(), clientId }),
@@ -227,7 +229,7 @@ export default function App() {
     }
     setAdminError('');
     try {
-      const response = await fetch('/api/admin/auth', {
+      const response = await fetch(API_BASE + '/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw }),
@@ -247,7 +249,7 @@ export default function App() {
 
   const loadAdminLicensesList = async (pw: string) => {
     try {
-      const response = await fetch('/api/admin/keys/list', {
+      const response = await fetch(API_BASE + '/api/admin/keys/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw }),
@@ -267,7 +269,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch('/api/admin/keys/create', {
+      const response = await fetch(API_BASE + '/api/admin/keys/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -301,7 +303,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch('/api/admin/keys/control', {
+      const response = await fetch(API_BASE + '/api/admin/keys/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -327,7 +329,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch('/api/admin/update-password', {
+      const response = await fetch(API_BASE + '/api/admin/update-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -503,7 +505,7 @@ export default function App() {
       const num = rows[i];
       
       try {
-        const response = await fetch('/api/lookup', {
+        const response = await fetch(API_BASE + '/api/lookup', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -587,7 +589,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch('/api/export', {
+      const response = await fetch(API_BASE + '/api/export', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

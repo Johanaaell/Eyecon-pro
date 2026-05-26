@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import * as XLSX from 'xlsx';
 import fs from "fs";
+import cors from "cors";
 
 interface LicenseKey {
   key: string;
@@ -85,6 +86,9 @@ function validateLicense(licenseKey: string | undefined, clientId?: string): { v
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Allow cross-origin requests for detached frontend/backend hosting
+  app.use(cors());
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
