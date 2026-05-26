@@ -1,16 +1,17 @@
-FROM node:18
+# Node 20 use kar rahe hain taake saare modern packages support hon
+FROM node:20
 
 WORKDIR /app
 
-# Sirf package.json copy karte hain (lock file ignore ho chuki hai)
+# Package files copy krte hain
 COPY package.json ./
 
-# Fresh aur clean dependencies install karne ke liye
+# Fresh installation bina kisi purane cache maslay ke
 RUN npm install
 
 COPY . .
 
-# Vite + TypeScript compilation
+# Vite aur TypeScript compile krein
 RUN npm run build
 
 EXPOSE 3000
