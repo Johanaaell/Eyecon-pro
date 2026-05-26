@@ -45,7 +45,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function App() {
   const [numbersText, setNumbersText] = useState<string>(
-    `923040710048\n923001122334\n923334445556\n12125550199\n442079460192`
+    `923001234567\n923001122334`
   );
   const [delay, setDelay] = useState<number>(3); // seconds
   const [records, setRecords] = useState<RecordItem[]>([]);
