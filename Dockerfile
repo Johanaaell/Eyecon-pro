@@ -1,12 +1,21 @@
 FROM node:20
 
-# Yeh line lazmi add krein taake node defaults clear hon
+# Production env initialize krein
 ENV NODE_ENV=production
 
 WORKDIR /app
-COPY package.json ./
+
+# Dependency check mappings
+COPY package*.json ./
+
 RUN npm install
+
 COPY . .
+
+# Complete site bundle compile
 RUN npm run build
-EXPOSE 3000
+
+# Hugging Face ka inner proxy system port 7860 expect karta hai
+EXPOSE 7860
+
 CMD ["npm", "start"]
