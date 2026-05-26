@@ -16,19 +16,22 @@ interface LicenseKey {
   activeClientId?: string;
 }
 
-const DB_PATH = path.join(process.cwd(), "data", "database.json");
+// Hugging Face / Docker par permanent write permissions nahi hotin, isliye /tmp folder best hai
+const isProduction = process.env.NODE_ENV === "production";
+const DB_DIR = isProduction ? path.join("/tmp", "data") : path.join(process.cwd(), "data");
+const DB_PATH = path.join(DB_DIR, "database.json");
 
-// Ensure data folder and database.json file exist
+// Ensure data folder and database.json file exist safely
 function initializeDB() {
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
   }
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify({
       adminPassword: process.env.ADMIN_PASSWORD || "admin123",
       keys: []
     }, null, 2));
+    console.log(`Database initialized successfully at: ${DB_PATH}`);
   }
 }
 
@@ -211,7 +214,7 @@ async function startServer() {
 
     const index = db.keys.findIndex((k: any) => k.key === key);
     if (index === -1) {
-      return res.status(404).json({ success: false, message: "License key not found" });
+      return status(404).json({ success: false, message: "License key not found" });
     }
 
     if (action === "block") {
@@ -319,7 +322,6 @@ async function startServer() {
       .filter(n => {
         if (!n) return false;
         if (n.startsWith('#') || n.startsWith('//')) return false;
-        // Must have at least some digits
         return /\d/.test(n);
       })
       .slice(0, 300);
@@ -333,7 +335,6 @@ async function startServer() {
       'X-Accel-Buffering': 'no',
     });
 
-    // Send initial status immediately
     res.write(`data: ${JSON.stringify({ type: 'start', total })}\n\n`);
 
     let clientDisconnected = false;
@@ -390,15 +391,12 @@ async function startServer() {
     
     try {
       const wb = XLSX.utils.book_new();
-      
-      // Sort records by Serial/count ascending so they save from #1 to #N top-down
       const sortedRecords = [...records].sort((a: any, b: any) => {
         const serialA = a.Serial || a.count || 0;
         const serialB = b.Serial || b.count || 0;
         return serialA - serialB;
       });
 
-      // Map columns cleanly for presentation
       const presentationRecords = sortedRecords.map((record: any) => ({
         'Serial': record.Serial || record.count || '',
         'Phone Number': record.Number || record.num || '',
@@ -420,23 +418,28 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
+  // Vite static files handling for production / safe fallback
+  const distPath = path.join(process.cwd(), 'dist');
+
+  if (fs.existsSync(path.join(distPath, 'index.html'))) {
+    console.log("Production static files directory detected. Serving React UI...");
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+  } else {
+    console.log("Vite static files not found in dist. Initializing default fallback API route...");
+    app.get('/', (req, res) => {
+      res.json({ 
+        message: "Eyecon Backend Server is running successfully!", 
+        mode: "API-Only",
+        health: "/api/health" 
+      });
+    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
