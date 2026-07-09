@@ -16,13 +16,15 @@ interface LicenseKey {
   activeClientId?: string;
 }
 
-const DB_PATH = path.join(process.cwd(), "data", "database.json");
+// Hugging Face / Docker par write permissions local path pr nahi hotin, isliye /tmp folder best hai
+const isProduction = process.env.NODE_ENV === "production";
+const DB_DIR = isProduction ? path.join("/tmp", "data") : path.join(process.cwd(), "data");
+const DB_PATH = path.join(DB_DIR, "database.json");
 
 // Ensure data folder and database.json file exist
 function initializeDB() {
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
   }
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify({
@@ -85,7 +87,7 @@ function validateLicense(licenseKey: string | undefined, clientId?: string): { v
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
   // Allow cross-origin requests for detached frontend/backend hosting
   app.use(cors());
