@@ -16,22 +16,19 @@ interface LicenseKey {
   activeClientId?: string;
 }
 
-// Hugging Face / Docker par permanent write permissions nahi hotin, isliye /tmp folder best hai
-const isProduction = process.env.NODE_ENV === "production";
-const DB_DIR = isProduction ? path.join("/tmp", "data") : path.join(process.cwd(), "data");
-const DB_PATH = path.join(DB_DIR, "database.json");
+const DB_PATH = path.join(process.cwd(), "data", "database.json");
 
-// Ensure data folder and database.json file exist safely
+// Ensure data folder and database.json file exist
 function initializeDB() {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify({
       adminPassword: process.env.ADMIN_PASSWORD || "admin123",
       keys: []
     }, null, 2));
-    console.log(`Database initialized successfully at: ${DB_PATH}`);
   }
 }
 
@@ -88,9 +85,7 @@ function validateLicense(licenseKey: string | undefined, clientId?: string): { v
 
 async function startServer() {
   const app = express();
-  
-  // Hugging Face ka load balancer 7860 port expect karta hai
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 7860;
+  const PORT = 3000;
 
   // Allow cross-origin requests for detached frontend/backend hosting
   app.use(cors());
@@ -260,17 +255,19 @@ async function startServer() {
 
   // API: Eyecon search logic
   const HEADERS = {
-    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
-    'e-auth': "a25a051f-19c9-4d4e-b28a-ee7514093d3e",
+    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    'e-auth': "c8b95df9-a312-41d6-be64-38784cc31428",
     'e-auth-k': "PgdtSBeR0MumR7fO",
     'e-auth-v': "e1",
     'e-auth-c': "40",
     'Accept': "application/json",
+    'accept-charset': "UTF-8",
+    'Content-Type': "application/x-www-form-urlencoded; charset=utf-8"
   };
 
   async function getEyeconData(number: string): Promise<string> {
     const cleanNumber = number.replace(/\+/g, '').replace(/\s+/g, '').trim();
-    const url = `https://api.eyecon-app.com/app/getnames.jsp?cli=${encodeURIComponent(cleanNumber)}&lang=en&is_callerid=true&is_ic=true&cv=vc_542_vn_4.0.542_a&requestApi=URLconnection&source=MenifaFragment`;
+    const url = `https://api.eyecon-app.com/app/getnames.jsp?cli=${encodeURIComponent(cleanNumber)}&lang=en&is_callerid=true&is_ic=true&cv=vc_769_vn_4.2026.06.29.1146_a&requestApi=URLconnection&source=MenifaFragment`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -324,6 +321,7 @@ async function startServer() {
       .filter(n => {
         if (!n) return false;
         if (n.startsWith('#') || n.startsWith('//')) return false;
+        // Must have at least some digits
         return /\d/.test(n);
       })
       .slice(0, 300);
@@ -337,6 +335,7 @@ async function startServer() {
       'X-Accel-Buffering': 'no',
     });
 
+    // Send initial status immediately
     res.write(`data: ${JSON.stringify({ type: 'start', total })}\n\n`);
 
     let clientDisconnected = false;
@@ -393,12 +392,15 @@ async function startServer() {
     
     try {
       const wb = XLSX.utils.book_new();
+      
+      // Sort records by Serial/count ascending so they save from #1 to #N top-down
       const sortedRecords = [...records].sort((a: any, b: any) => {
         const serialA = a.Serial || a.count || 0;
         const serialB = b.Serial || b.count || 0;
         return serialA - serialB;
       });
 
+      // Map columns cleanly for presentation
       const presentationRecords = sortedRecords.map((record: any) => ({
         'Serial': record.Serial || record.count || '',
         'Phone Number': record.Number || record.num || '',
@@ -420,29 +422,23 @@ async function startServer() {
     }
   });
 
-  // Vite static files handling for production / safe fallback
-  const distPath = path.join(process.cwd(), 'dist');
-
-  if (fs.existsSync(path.join(distPath, 'index.html'))) {
-    console.log("Production static files directory detected. Serving React UI...");
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
-  } else {
-    console.log("Vite static files not found in dist. Initializing default fallback API route...");
-    app.get('/', (req, res) => {
-      res.json({ 
-        message: "Eyecon Backend Server is running successfully!", 
-        mode: "API-Only",
-        health: "/api/health" 
-      });
-    });
   }
 
-  // Binding on dynamic or Hugging face port 7860
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
