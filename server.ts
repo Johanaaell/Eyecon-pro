@@ -258,11 +258,12 @@ async function startServer() {
   // API: Eyecon search logic
   const HEADERS = {
     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    'e-auth': "c8b95df9-a312-41d6-be64-38784cc31428",
+    'e-auth': "2bf93bf0-628d-45ae-b7df-de370d11ea59",
     'e-auth-k': "PgdtSBeR0MumR7fO",
     'e-auth-v': "e1",
-    'e-auth-c': "40",
+    'e-auth-c': "36",
     'Accept': "application/json",
+    'Accept-Encoding': "gzip",
     'accept-charset': "UTF-8",
     'Content-Type': "application/x-www-form-urlencoded; charset=utf-8"
   };
