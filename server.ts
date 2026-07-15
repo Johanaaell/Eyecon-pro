@@ -21,6 +21,18 @@ const isProduction = process.env.NODE_ENV === "production";
 const DB_DIR = isProduction ? path.join("/tmp", "data") : path.join(process.cwd(), "data");
 const DB_PATH = path.join(DB_DIR, "database.json");
 
+function cleanPassword(pw: string | undefined): string {
+  if (!pw) return "";
+  let s = pw.trim();
+  if (s.startsWith('"') && s.endsWith('"')) {
+    s = s.slice(1, -1);
+  }
+  if (s.startsWith("'") && s.endsWith("'")) {
+    s = s.slice(1, -1);
+  }
+  return s.trim();
+}
+
 // Ensure data folder and database.json file exist
 function initializeDB() {
   if (!fs.existsSync(DB_DIR)) {
@@ -28,7 +40,7 @@ function initializeDB() {
   }
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify({
-      adminPassword: process.env.ADMIN_PASSWORD || "admin123",
+      adminPassword: cleanPassword(process.env.ADMIN_PASSWORD) || "admin123",
       keys: []
     }, null, 2));
   }
@@ -38,9 +50,15 @@ function readDB() {
   initializeDB();
   try {
     const data = fs.readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(data);
+    const db = JSON.parse(data);
+    if (process.env.ADMIN_PASSWORD) {
+      db.adminPassword = cleanPassword(process.env.ADMIN_PASSWORD);
+    } else {
+      db.adminPassword = cleanPassword(db.adminPassword) || "admin123";
+    }
+    return db;
   } catch (err) {
-    return { adminPassword: "admin123", keys: [] };
+    return { adminPassword: cleanPassword(process.env.ADMIN_PASSWORD) || "admin123", keys: [] };
   }
 }
 
@@ -128,7 +146,7 @@ async function startServer() {
   app.post("/api/admin/auth", (req, res) => {
     const { password } = req.body;
     const db = readDB();
-    if (password === db.adminPassword) {
+    if (cleanPassword(password) === cleanPassword(db.adminPassword)) {
       return res.json({ success: true });
     } else {
       return res.status(401).json({ success: false, message: "Incorrect admin password" });
@@ -139,13 +157,14 @@ async function startServer() {
   app.post("/api/admin/update-password", (req, res) => {
     const { password, newPassword } = req.body;
     const db = readDB();
-    if (password !== db.adminPassword) {
+    if (cleanPassword(password) !== cleanPassword(db.adminPassword)) {
       return res.status(401).json({ success: false, message: "Incorrect current admin password" });
     }
-    if (!newPassword || newPassword.length < 4) {
+    const cleanedNewPassword = cleanPassword(newPassword);
+    if (!cleanedNewPassword || cleanedNewPassword.length < 4) {
       return res.status(400).json({ success: false, message: "New password must be at least 4 characters long" });
     }
-    db.adminPassword = newPassword;
+    db.adminPassword = cleanedNewPassword;
     writeDB(db);
     return res.json({ success: true, message: "Admin password updated successfully" });
   });
@@ -154,7 +173,7 @@ async function startServer() {
   app.post("/api/admin/keys/list", (req, res) => {
     const { password } = req.body;
     const db = readDB();
-    if (password !== db.adminPassword) {
+    if (cleanPassword(password) !== cleanPassword(db.adminPassword)) {
       return res.status(401).json({ success: false, message: "Unauthorized password verification failed" });
     }
     return res.json({ success: true, keys: db.keys });
@@ -164,7 +183,7 @@ async function startServer() {
   app.post("/api/admin/keys/create", (req, res) => {
     const { password, plan, user } = req.body;
     const db = readDB();
-    if (password !== db.adminPassword) {
+    if (cleanPassword(password) !== cleanPassword(db.adminPassword)) {
       return res.status(401).json({ success: false, message: "Unauthorized password verification failed" });
     }
 
@@ -207,7 +226,7 @@ async function startServer() {
   app.post("/api/admin/keys/control", (req, res) => {
     const { password, key, action } = req.body;
     const db = readDB();
-    if (password !== db.adminPassword) {
+    if (cleanPassword(password) !== cleanPassword(db.adminPassword)) {
       return res.status(401).json({ success: false, message: "Unauthorized password verification failed" });
     }
 
