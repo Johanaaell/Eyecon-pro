@@ -41,7 +41,21 @@ interface RecordItem {
   Timestamp: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Automatic production fallback to Johan342's Hugging Face Space backend on Netlify/Vercel/GitHub Pages
+  if (typeof window !== 'undefined') {
+    const hn = window.location.hostname;
+    if (hn.includes('netlify.app') || hn.includes('vercel.app') || hn.includes('github.io')) {
+      return 'https://johan342-eyecon-backend.hf.space';
+    }
+  }
+  return '';
+};
+
+const API_BASE = getApiBase();
 
 export default function App() {
   const [numbersText, setNumbersText] = useState<string>(
